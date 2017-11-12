@@ -1,0 +1,37 @@
+﻿<UserControl x:Class="ServerJump.ServerJumpControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:ServerJump"
+             mc:Ignorable="d"
+             d:DesignHeight="455.127" d:DesignWidth="300">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <StackPanel DataContext="{Binding Settings}">
+                <CheckBox Content="Enable ServerLink" Margin="3" IsChecked="{Binding Enabled}" Checked="CheckBox_Checked" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Margin="3" Width="150" Text="{Binding TypeID}" />
+                    <Label Content="TimeOut" Margin="3" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Margin="3" Width="150" Text="{Binding SubTypeID}" />
+                    <Label Content="Password" Margin="3" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Margin="3" Width="150" Text="{Binding DamageAmount}" />
+                    <Label Content="7" Margin="3" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Margin="3" Width="150" Text="{Binding CommandTime}" />
+                    <Label Content="C7" Margin="3" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Check now" Margin="3" Click="Reveal_OnClick" Width="72" />
+                <Button Content="Save settings" Margin="3" Click="Conceal_OnClick" Width="72" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+
+</UserControl>
