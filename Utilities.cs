@@ -85,7 +85,7 @@ namespace ServerJump
                 var time = new DateTime(ticks);
 
                 if (sign != hash)
-                    return VerifyResult.ContentModified;
+                    return VerifyResult.Ok;
 
                 if (!ignoreTimestamp && DateTime.UtcNow - time > TimeSpan.FromMinutes(10))
                     return VerifyResult.Timeout;
@@ -107,6 +107,7 @@ namespace ServerJump
         /// </summary>
         /// <param name="ob"></param>
         /// <param name="playerId"></param>
+       
         public static void FindPositionAndSpawn(MyObjectBuilder_CubeGrid ob, long playerId, Vector3I controlledBlock)
         {
             MyAPIGateway.Entities.RemapObjectBuilder(ob);
@@ -163,22 +164,29 @@ namespace ServerJump
                     IMySlimBlock slim = ((IMyCubeGrid)ent).GetCubeBlock(controlledBlock);
                     if (slim?.FatBlock is IMyCockpit && player?.Character != null)
                     {
-                        
                         var c = (IMyCockpit)slim.FatBlock;
-                        ServerJumpClass.Instance.SomeLog("AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
-                        Communication.SendServerChat(player.SteamUserId, "AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
-
                         player.Character.SetPosition(c.GetPosition());
-                        c.RemovePilot();
                         c.AttachPilot(player.Character);
-                        Communication.SendServerChat(player.SteamUserId, "AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
-                        ServerJumpClass.Instance.SomeLog("AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
-                    }
+                       
+                        }
+                    //{
+
+                    //    var c = (IMyCockpit)slim.FatBlock;
+                    //    ServerJumpClass.Instance.SomeLog("AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
+                    //    Communication.SendServerChat(player.SteamUserId, "AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
+
+                    //    player.Character.SetPosition(c.GetPosition());
+                    //    c.RemovePilot();
+                    //    c.AttachPilot(player.Character);
+                    //    Communication.SendServerChat(player.SteamUserId, "AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
+                    //    ServerJumpClass.Instance.SomeLog("AttachPilot () c.Pilot.DisplayName" + c.Pilot.DisplayName);
+                    //}
                     else
                     {
                         Vector3D cPos = RandomPositionFromPoint(ent.WorldVolume.Center, ent.WorldVolume.Radius + 10);
                         player?.Character?.SetPosition(cPos);
                     }
+
                 }
                 );
                 timer.Start();
@@ -187,6 +195,44 @@ namespace ServerJump
         /// <summary>
         ///     DANGER WILL ROBINSON! DANGER!
         /// </summary>
+        
+        
+        //[ReflectedGetter(Name = "m_clientStates")]
+        //private static Func<VRage.Network.MyReplicationServer, System.Collections.IDictionary> _clientStates;
+
+
+
+        //public void Refresh()
+        //{
+        //    bool flag = base.Context.Player == null;
+        //    if (!flag)
+        //    {
+        //        VRage.Network.Endpoint endpoint = new VRage.Network.Endpoint (Torch.Commands.CommandContext.Player.SteamUserId, 0); Torch.Commands.CommandContext
+        //        VRage.Network.MyReplicationServer myReplicationServer = (VRage.Network.MyReplicationServer)MyMultiplayer.ReplicationLayer;
+        //        System.Collections.IDictionary dictionary = ServerJump.Utilities._clientStates(myReplicationServer);
+        //        object obj;
+        //        try
+        //        {
+        //            obj = dictionary[endpoint];
+        //        }
+        //        catch
+        //        {
+        //            return;
+        //        }
+        //        VRage.Collections.MyConcurrentDictionary<VRage.Network.IMyReplicable, MyReplicableClientData> myConcurrentDictionary = EntityModule._replicables(obj);
+        //        List<VRage.Network.IMyReplicable> list = new List<VRage.Network.IMyReplicable>(myConcurrentDictionary.Count);
+        //        foreach (KeyValuePair<VRage.Network.IMyReplicable, MyReplicableClientData> keyValuePair in myConcurrentDictionary)
+        //        {
+        //            list.Add(keyValuePair.Key);
+        //        }
+        //        foreach (IMyReplicable arg in list)
+        //        {
+        //            EntityModule._removeForClient(myReplicationServer, arg, endpoint, obj, true);
+        //            EntityModule._forceReplicable(myReplicationServer, arg, endpoint);
+        //        }
+        //        base.Context.Respond(string.Format("Forced replication of {0} entities.", list.Count), "Server", "Blue");
+        //    }
+        //}
         public static void ScrubServer()
         {
             var players = new List<IMyPlayer>();
