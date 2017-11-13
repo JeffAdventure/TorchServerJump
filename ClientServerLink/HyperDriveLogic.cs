@@ -31,103 +31,91 @@ using SpaceEngineers.Game.ModAPI;
 
 namespace ServerLinkMod
 {
-
+    /// <summary>
+    /// This class for "HyperDrive" Block, contains all grid transfer logic
+    /// </summary>
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_JumpDrive), true, "HyperDrive")]
     public class HyperJumpLogic : MyGameLogicComponent
     {
-        IMyFunctionalBlock JumpDrv { get; set; }
-        IMyCubeGrid Grid;
-        IMyGridTerminalSystem Term;
-        MyResourceSinkComponent MyPowerSink;
+        private IMyFunctionalBlock JumpDrv { get; set; }
         private MyEntity3DSoundEmitter m_soundEmitter;
         private MyEntity3DSoundEmitter LOOP_soundEmitter;
-        private bool m_playedSound = false;
-        public bool magicblack = false;
-        public bool ShoudPlayLoop = false;
-        public MyEntity3DSoundEmitter LoopSoundEmitter { get { return LOOP_soundEmitter; } }
-        public MyEntity3DSoundEmitter SoundEmitter { get { return m_soundEmitter; } }
+        private bool imInit = false;
+        private bool ShoudPlayLoop = false;
+        private MyEntity3DSoundEmitter LoopSoundEmitter { get { return LOOP_soundEmitter; } }
+        private MyEntity3DSoundEmitter SoundEmitter { get { return m_soundEmitter; } }
 
-        public override void Init(MyObjectBuilder_EntityBase objectBuilder)
+        public override void Init(MyObjectBuilder_EntityBase objectBuilder)//bugged shit
+        { 
+            base.Init(objectBuilder);
+            Entity.NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME;
+        }
+
+        private void MyInit()
         {
             JumpDrv = Container.Entity as IMyFunctionalBlock;
-            base.Init(objectBuilder);
-            Entity.NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME | MyEntityUpdateEnum.EACH_FRAME;
-
             if (!StaticLinkModCoreblock.HyperDriveList.Contains(Entity)) StaticLinkModCoreblock.HyperDriveList.Add(Entity);
             JumpDrv.AppendingCustomInfo += Tool_AppendingCustomInfo;
             JumpDrv.OnClose += OnClose;
             m_soundEmitter = new MyEntity3DSoundEmitter(Container.Entity as VRage.Game.Entity.MyEntity);
             LOOP_soundEmitter = new MyEntity3DSoundEmitter(Container.Entity as VRage.Game.Entity.MyEntity);
-            magicblack = true;
+            imInit = true;
         }
-        void OnClose(IMyEntity obj)
+
+        public void OnClose(IMyEntity obj)
         {
             if (StaticLinkModCoreblock.HyperDriveList.Contains(Entity)) StaticLinkModCoreblock.HyperDriveList.Remove(Entity);
             JumpDrv.AppendingCustomInfo -= Tool_AppendingCustomInfo;
             JumpDrv.OnClose -= OnClose;
 
         }
-        public override void UpdateBeforeSimulation()
-        {
 
+        public override void UpdateBeforeSimulation100()
+        {
+            LinkModCore.WriteToLogDbg("HyperDrive:" + "UpdateBeforeSimulation100");
+            if (!imInit) MyInit();
             try
             {
                 if (StaticLinkModCoreblock.InitedJumpDriveControls)
                 {
                     JumpDrv.RefreshCustomInfo();
-                    //    MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "RefreshCustomInfo");
                 }
             }
-            catch { MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "RefreshCustomInfo catch"); }
-
-        }
-        public override void UpdateBeforeSimulation100()
-        {
-            Logging.Instance.WriteLine("UpdateBeforeSimulation100 ");
-            MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "UpdateBeforeSimulation100");
-
+            catch { LinkModCore.WriteToLogDbg("HyperDrive:" + "RefreshCustomInfo catch"); }
             try
             {
                 if (!StaticLinkModCoreblock.InitedJumpDriveControls)
                 {
                     InitJumpDriveControls();
-                    Logging.Instance.WriteLine("InitJumpDriveControls inside");
-                    MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "InitJumpDriveControls");
                 }
-                if (magicblack)
+                if (imInit)
                 {
                     if (StaticLinkModCoreblock.stJumpGateLink != null && (Vector3D.DistanceSquared(StaticLinkModCoreblock.stJumpGateLink.GetPosition(), Entity.GetPosition())) < 5000 * 5000)
                     {
-
-                        //  Logging.Instance.WriteLine("Before boost: CurrentStoredPower" + ((JumpDrv as IMyJumpDrive).CurrentStoredPower));
-                        //Logging.Instance.WriteLine("Before Entity as MyJumpDrive" + (Entity as MyJumpDrive).CurrentStoredPower);
                         if ((JumpDrv as IMyJumpDrive).CurrentStoredPower < (JumpDrv as IMyJumpDrive).MaxStoredPower)
                         {
                             if (!ShoudPlayLoop)
                             {
                                 ShoudPlayLoop = true;
                                 if (!LoopSoundEmitter.IsPlaying) { PlayLoopSound("Foogs.JumpDriveChargeLoop"); }
-                                //   
                             }
                                 (JumpDrv as IMyJumpDrive).CurrentStoredPower = (JumpDrv as IMyJumpDrive).CurrentStoredPower + ((JumpDrv as IMyJumpDrive).MaxStoredPower / 150);
-                                //Logging.Instance.WriteLine("After boost: CurrentStoredPower" + ((JumpDrv as IMyJumpDrive).CurrentStoredPower));
-                                //Logging.Instance.WriteLine("After Entity as MyJumpDrive" + (Entity as MyJumpDrive).CurrentStoredPower);
-                            }
-                            else
-                            {
-                              //  PlaySound(""); //stop sound
-                                (JumpDrv as IMyJumpDrive).CurrentStoredPower = (JumpDrv as IMyJumpDrive).MaxStoredPower;
-                            if (LoopSoundEmitter.IsPlaying) { PlayLoopSound(""); }
                         }
+                        else
+                        {
+                            (JumpDrv as IMyJumpDrive).CurrentStoredPower = (JumpDrv as IMyJumpDrive).MaxStoredPower;
+                            if (LoopSoundEmitter.IsPlaying) { PlayLoopSound(""); }
                         }
                     }
                 }
-            catch { MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "catch !! UpdateBeforeSimulation100"); }
+            }
+            catch { LinkModCore.WriteToLogDbg("HyperDrive:" + "catch !! UpdateBeforeSimulation100"); }
 
         }
-        public void PlayLoopSound(string soundname, bool stopPrevious = false, float maxdistance = 1000, float CustomVolume = 1f, bool CanPlayLoopSounds = true)
+
+        private void PlayLoopSound(string soundname, bool stopPrevious = false, float maxdistance = 1000, float CustomVolume = 1f, bool CanPlayLoopSounds = true)
         {
-            Logging.Instance.WriteLine($"PlayLoopSound");
+            LinkModCore.WriteToLogDbg("PlayLoopSound");
             MyEntity3DSoundEmitter emitter = null;
             emitter = LoopSoundEmitter;
 
@@ -150,9 +138,9 @@ namespace ServerLinkMod
                 }
             }
         }
-        public void PlaySound(string soundname, bool stopPrevious = false, float maxdistance = 100, float CustomVolume = 1f, bool CanPlayLoopSounds = false)
+        private void PlaySound(string soundname, bool stopPrevious = false, float maxdistance = 100, float CustomVolume = 1f, bool CanPlayLoopSounds = false)
         {
-            Logging.Instance.WriteLine($"PlaySound");
+            LinkModCore.WriteToLogDbg("PlaySound");
             MyEntity3DSoundEmitter emitter = null;
             emitter = SoundEmitter;
 
@@ -179,7 +167,7 @@ namespace ServerLinkMod
         private void Tool_AppendingCustomInfo(IMyTerminalBlock trash, StringBuilder Info)
         {
             Info.Clear();
-            //MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "Tool_AppendingCustomInfo");
+            LinkModCore.WriteToLogDbg("HyperDrive:"+ "Tool_AppendingCustomInfo");
             Info.AppendLine($">CROSS-SERVER JUMP STATUS:<");
             if ((trash.GetObjectBuilderCubeBlock() as MyObjectBuilder_JumpDrive).StoredPower >= (trash as MyJumpDrive).BlockDefinition.PowerNeededForJump)
             { Info.AppendLine($"Charged and Ready"); }
@@ -191,43 +179,49 @@ namespace ServerLinkMod
         }
 
 
-        public static bool CanJump(IMyTerminalBlock Block)
+        private static bool CanJump(IMyTerminalBlock Block)
         {
             try
             {
-                MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "CanJump???");
-                if (((Block.GetObjectBuilderCubeBlock() as MyObjectBuilder_JumpDrive).StoredPower >= (Block as MyJumpDrive).BlockDefinition.PowerNeededForJump) && StaticLinkModCoreblock.stJumpGateLink != null && (Vector3D.DistanceSquared(StaticLinkModCoreblock.stJumpGateLink.GetPosition(), Block.GetPosition()) < 5000 * 5000))
-                    return true;
+                LinkModCore.WriteToLogDbg("HyperDrive:" + "CanJump?");
+
+                if (((Block.GetObjectBuilderCubeBlock() as MyObjectBuilder_JumpDrive).StoredPower >= (Block as MyJumpDrive).BlockDefinition.PowerNeededForJump) 
+                    && StaticLinkModCoreblock.stJumpGateLink != null 
+                    && (Vector3D.DistanceSquared(StaticLinkModCoreblock.stJumpGateLink.GetPosition(), Block.GetPosition()) < 5000 * 5000))
+                return true;
                 return false;
             }
             catch
             {
-                MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "CanJump catch false");
+                LinkModCore.WriteToLogDbg("HyperDrive:" + "CanJump catch false");
 
                 return false;
             }
         }
 
-        public void TryJump()
+        /// <summary>
+        /// Launch transfer from button click
+        /// </summary>
+        private void TryJump()
         {
             if (LoopSoundEmitter.IsPlaying) { PlayLoopSound(""); }
             JumpDrv.GameLogic.GetAs<HyperJumpLogic>().PlaySound("Foogs.JumpDriveStart", true);
-            Logging.Instance.WriteLine($"TryJump Jump Started (client)");
-            MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "Jump Started");
+
+            LinkModCore.WriteToLogDbg("HyperDrive : TryJump Jump Started (client)");
+
             var msg = new Communication.JumpInfo
             {
                 steamId = MyAPIGateway.Session.Player.SteamUserId
             };
             byte[] data = Encoding.UTF8.GetBytes(MyAPIGateway.Utilities.SerializeToXML(msg));
-            Communication.SendToServer(Communication.MessageType.ClientRequestJump, data);
+            Communication.SendToServer(Communication.MessageType.ClientRequestJump, data);//send ship to server
         }
 
-        public void InitJumpDriveControls()
-        {
+        private void InitJumpDriveControls()
+        {   //TODO delete unused controls from block.how? see CoreBlockMod
 
+            LinkModCore.WriteToLogDbg("HyperDrive:" + "InitJumpDriveControls");
             if (StaticLinkModCoreblock.InitedJumpDriveControls) return;
-            Logging.Instance.WriteLine($"InitJumpDriveControls");
-            MyAPIGateway.Utilities.ShowMessage("HyperDrive:", "InitJumpDriveControls");
             var JumpButton = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyJumpDrive>("JumpButton");
             JumpButton.Title = MyStringId.GetOrCompute("Hyper Jump");
             JumpButton.Tooltip = MyStringId.GetOrCompute("Init Hyper Jump to remote universe");
