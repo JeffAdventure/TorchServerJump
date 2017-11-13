@@ -156,7 +156,6 @@ namespace ServerJump
                 }
             }
             MyAPIGateway.Entities.AddEntity(ent);
-            /*
             var timer = new Timer(10000);
             timer.AutoReset = false;
                 timer.Elapsed += (a, b) => MyAPIGateway.Utilities.InvokeOnGameThread(() =>
@@ -183,8 +182,6 @@ namespace ServerJump
                 }
                 );
                 timer.Start();
-                */
-            
         }
 
         /// <summary>
