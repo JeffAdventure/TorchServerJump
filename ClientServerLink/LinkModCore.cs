@@ -51,6 +51,10 @@ using Sandbox.Game.Gui;
 namespace ServerLinkMod
 {
     // [MyEntityComponentDescriptor(typeof(MyObjectBuilder_Beacon), false, new string[] { "JumpGateLink" })]
+   
+    /// <summary>
+    ///this is staticclass for connect gate and jumpdrive
+    /// </summary>
     public static class StaticLinkModCoreblock
     {
         public static  List<IMyEntity> HyperDriveList = new List<IMyEntity>();
@@ -58,6 +62,9 @@ namespace ServerLinkMod
         public static bool InitedJumpDriveControls  = false;
     }
 
+    /// <summary>
+    /// This is class for gate ("beacon " ingame) block,only for client
+    /// </summary>
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_Beacon), true, new string[] { "JumpGateLink" })]
     public class LinkModCoreblock : MyGameLogicComponent
     {
@@ -70,7 +77,7 @@ namespace ServerLinkMod
             base.Init(objectBuilder);
             Entity.NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME;
             JumpGateLink.OnClose += OnClose;
-            StaticLinkModCoreblock.stJumpGateLink = Entity;
+            StaticLinkModCoreblock.stJumpGateLink = Entity; //this class for it. Hook gate entity.
 
         }
         void OnClose(IMyEntity obj)
@@ -145,39 +152,39 @@ namespace ServerLinkMod
 
 
 
-    [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation, 5)]
+   /// <summary>
+   /// This is main big class for jump logic,shoud be identical client/server, works without block.
+   /// </summary>
+   [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation, 5)]
     public class LinkModCore : MySessionComponentBase
     {
-        private const string HELP_TEXT = "Use !join to find a server to join, then '!join #' to join that server. !hub will take you back to the hub. !countown will hide the countdown timer.";
-        private const string MODERATOR_HELP = HELP_TEXT + " '!spectate #' will take you to a match server without your ship, only available to moderators.";
-        private const string ADMIN_HELP = MODERATOR_HELP + " !endjoin ends the join timer. !endmatch ends the match timer.";
+        public static bool Debug = true;
         private static bool _init;
         private static bool _playerInit;
-        public static bool Debug;
         public static LinkModCore Instance;
 
         private readonly HashSet<IMyEntity> _entityCache = new HashSet<IMyEntity>();
-        private readonly Random _random = new Random();
-     
-        private bool _countdown = true;
-
         private int _updateCount;
-        
-        private Vector4 Color2 = ((new Color(240, 0, 0)*0.2f).ToVector4()); //желтый
-        private Vector4 Color1 = ((new Color(0,255,255)*0.2f).ToVector4()); //белый
 
-        public override void Draw()
+        private Vector4 Color2 = ((new Color(240, 0, 0) * 0.2f).ToVector4()); //yellow
+        private Vector4 Color1 = ((new Color(0,255,255) * 0.2f).ToVector4()); //white
+
+
+
+        public static void WriteToLogDbg(string msg)
+        {
+            MyAPIGateway.Utilities.ShowMessage("dbg", msg);
+            Logging.Instance.WriteLine(msg);
+        }
+        public override void Draw() //Draw charge pulse
         {
             if (StaticLinkModCoreblock.stJumpGateLink == null || StaticLinkModCoreblock.HyperDriveList.Count <=0) return;
            
             foreach (IMyEntity line in StaticLinkModCoreblock.HyperDriveList)
             {
                 int tmp = ((int)((line as IMyJumpDrive).CurrentStoredPower * 100) / (int)(line as IMyJumpDrive).MaxStoredPower);
-              //  Vector4 xColor1 = Color1;
-               //  xColor1.Z = xColor1.Z + tmp;
-                // Vector4 xColor2 = Color2;
-               //  xColor2.X = xColor2.X -( tmp *2);
-               /// xColor2.Y = xColor2.Y + (tmp * 2) + 15;
+              //TODO Fix Colors
+              //TODO Add Pulse/Particles
                 MySimpleObjectDraw.DrawLine(StaticLinkModCoreblock.stJumpGateLink.GetPosition(), line.GetPosition(), MyStringId.GetOrCompute("WeaponLaser"), ref Color1, 1f);
                 MySimpleObjectDraw.DrawLine(StaticLinkModCoreblock.stJumpGateLink.GetPosition(), line.GetPosition(), MyStringId.GetOrCompute("WeaponLaser"), ref Color2,3f);
             }
@@ -186,8 +193,8 @@ namespace ServerLinkMod
 
         public override void UpdateBeforeSimulation()
         {
-              if (MyAPIGateway.Multiplayer.IsServer)
-               return;
+            if (MyAPIGateway.Multiplayer.IsServer)//only client pls
+                return;
             
                 if (MyAPIGateway.Session == null)
                     return;
@@ -222,10 +229,6 @@ namespace ServerLinkMod
                                                                  "Grids are limited to 5k blocks.\r\n" +
                                                                  "Grids in the hub will always be static, and all weapons are disabled.\r\n" +
                                                                  "Grids in the hub MUST be owned! Unowned grids and grids beloning to offline players will be deleted every 10 minutes.\r\n\r\n" +
-                                                                 "Hub server provided by Neimoh of Galaxy Strike Force\r\n" +
-                                                                 "Match server #1 provided by Franky500 of Frankys Space\r\n" +
-                                                                 "Be sure to visit their regular servers!\r\n" +
-                                                                 "All other servers provided by X_Wing_Ian\r\n\r\n" +
                                                                  "Use !join to get a list of servers you can join. Use !help for a full list of commands you can use.\r\n\r\n\r\n" +
                                                                  "Enjoy!\r\n" +
                                                                  "-rexxar",
@@ -236,48 +239,15 @@ namespace ServerLinkMod
                         w.Flush();
                         w.Close();
                     }
-                    //else if (!Settings.Instance.Hub && !Exempt.Contains(MyAPIGateway.Session.Player.SteamUserId))
-                    //{
-                    //    MyAPIGateway.Utilities.ShowMessage("System", "You shouldn't be here!");
-                    //    Communication.RedirectClient(MyAPIGateway.Session.Player.SteamUserId, Utilities.ZERO_IP);
-                    //}
-                }
-
-              /*  if (MyAPIGateway.Session.Player != null)
-                {
-                    if (LobbyTime.HasValue && LobbyTime > DateTime.Now)
-                    {
-                        IMyHudObjectiveLine line = MyAPIGateway.Utilities.GetObjectiveLine();
-                        line.Title = "Match starting in:";
-                        line.Objectives.Clear();
-                        line.Objectives.Add((DateTime.Now - LobbyTime.Value).ToString(@"mm\:ss"));
-                        if (_countdown && !line.Visible)
-                            line.Show();
-                    }
-                    else
-                    {
-                        if (MatchTime.HasValue && MatchTime >= DateTime.Now)
-                        {
-                            IMyHudObjectiveLine line = MyAPIGateway.Utilities.GetObjectiveLine();
-                            line.Title = "Match ending in:";
-                            line.Objectives.Clear();
-                            line.Objectives.Add((DateTime.Now - MatchTime.Value).ToString(@"mm\:ss"));
-                            if (_countdown && !line.Visible)
-                                line.Show();
-                        }
-                    }
-                }*/
-
-
-
-           
+                   
+                }            
         }
 
 
     
         protected override void UnloadData()
         {
-            if (MyAPIGateway.Multiplayer.IsServer)
+            if (MyAPIGateway.Multiplayer.IsServer) //only client pls
                 return;
             MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
             Communication.UnregisterHandlers();
@@ -297,17 +267,17 @@ namespace ServerLinkMod
         
         private void MessageEntered(string messageText, ref bool sendToOthers)
         {
-            if (messageText.Equals("!particle", StringComparison.CurrentCultureIgnoreCase))
+            if (messageText.Equals("!testparticle", StringComparison.CurrentCultureIgnoreCase))
             {
                 sendToOthers = false;
-                //   StartCharjing();
-                return;
+                // StartCharjing();
+                return; //dont send to server
             }
 
             if (messageText.StartsWith("!"))
             {
                 sendToOthers = false;
-                Communication.SendClientChat(messageText);
+                Communication.SendClientChat(messageText); //send msg to server
             }
         }
 

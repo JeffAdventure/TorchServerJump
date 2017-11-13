@@ -53,9 +53,6 @@ namespace ServerLinkMod
 
                 switch (type)
                 {
-                    case MessageType.ServerGridPart:
-                        ReceiveServerGridPart(data);
-                        break;
                     case MessageType.ClientGridPart:
                         ReceiveClientGridPart(data);
                         break;
@@ -130,56 +127,7 @@ namespace ServerLinkMod
             writer.Flush();
             writer.Close();
         }
-
-        private static void ReceiveServerGridPart(byte[] data)
-        {
-            ulong steamId = BitConverter.ToUInt64(data, 0);
-
-            SegmentedReceiver receiver;
-            if (!_recievers.TryGetValue(steamId, out receiver))
-            {
-                receiver = new SegmentedReceiver(steamId);
-                _recievers.Add(steamId, receiver);
-            }
-
-            byte[] message = receiver.Desegment(data);
-            if (message == null)
-                return; //don't have all the parts yet
-
-            ClientData clientData;
-            Utilities.VerifyResult res = Utilities.DeserializeAndVerify(message, out clientData, Settings.Instance.Hub);
-
-            switch (res)
-            {
-                case Utilities.VerifyResult.Ok:
-                    long id = MyAPIGateway.Players.TryGetIdentityId(steamId);
-
-                    Utilities.RecreateFaction(clientData.Faction, id);
-                    Utilities.FindPositionAndSpawn(clientData.Grid, id, clientData.ControlledBlock);
-                 //   LinkModCore.Instance.TryStartLobby();
-                  //  SendMatchTimes(steamId);
-                    break;
-                case Utilities.VerifyResult.Error:
-                    MyAPIGateway.Utilities.ShowMessage("Server", "Error loading a grid. Notify an admin!");
-                    MyAPIGateway.Utilities.SendMessage("Error loading a grid. Notify an admin!");
-                    Logging.Instance.WriteLine($"User {steamId} failed. Validation response: {res}. Client data to follow:");
-                    Logging.Instance.WriteLine(clientData == null ? "NULL" : MyAPIGateway.Utilities.SerializeToXML(clientData));
-                    break;
-                case Utilities.VerifyResult.Timeout:
-                    if (Settings.Instance.Hub)
-                        goto case Utilities.VerifyResult.Ok;
-                    goto case Utilities.VerifyResult.ContentModified;
-                case Utilities.VerifyResult.ContentModified:
-                    MyAPIGateway.Utilities.SendMessage("A user was detected cheating! Event was recorded and the user will be remnoved from the game.");
-                    RedirectClient(steamId, Utilities.ZERO_IP);
-                    
-                    Logging.Instance.WriteLine($"User {steamId} was detected cheating. Validation response: {res}. Client data to follow:");
-                    Logging.Instance.WriteLine(clientData == null ? "NULL" : MyAPIGateway.Utilities.SerializeToXML(clientData));
-                    break;
-                default:
-                    return;
-            }
-        }
+        
 
         private static void OnRedirect(byte[] data)
         {
