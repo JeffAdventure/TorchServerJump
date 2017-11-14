@@ -138,7 +138,7 @@ namespace ServerJump
                 return; //don't have all the parts yet
 
             ClientData clientData;
-            Utilities.VerifyResult res = Utilities.DeserializeAndVerify(message, out clientData, ServerJump.ServerJumpClass.Instance.Settings.Hub);
+            Utilities.VerifyResult res = Utilities.DeserializeAndVerify(message, out clientData); //ignore timestamp none!
 
             switch (res)
             {
@@ -158,8 +158,8 @@ namespace ServerJump
                     ServerJumpClass.Instance.SomeLog(clientData == null ? "NULL" : MyAPIGateway.Utilities.SerializeToXML(clientData));
                     break;
                 case Utilities.VerifyResult.Timeout:
-                    if (ServerJump.ServerJumpClass.Instance.Settings.Hub)
-                        goto case Utilities.VerifyResult.Ok;
+                  //  if (ServerJump.ServerJumpClass.Instance.Settings.Hub)
+                   // goto case Utilities.VerifyResult.Ok;
                     goto case Utilities.VerifyResult.ContentModified;
                 case Utilities.VerifyResult.ContentModified:
                     MyAPIGateway.Utilities.SendMessage("A user was detected cheating! Event was recorded and the user will be remnoved from the game.");
@@ -275,8 +275,8 @@ namespace ServerJump
         public static void SendMatchTimes(ulong steamId)
         {
             var data = new byte[sizeof(long) * 2];
-            DateTime lobbyTime = ServerJumpClass.Instance.MatchStart + TimeSpan.FromMinutes(ServerJump.ServerJumpClass.Instance.Settings.JoinTime);
-            DateTime matchTime = lobbyTime + TimeSpan.FromMinutes(ServerJump.ServerJumpClass.Instance.Settings.BattleTime);
+            DateTime lobbyTime = ServerJumpClass.Instance.MatchStart + TimeSpan.FromMinutes(5);
+            DateTime matchTime = lobbyTime + TimeSpan.FromMinutes(5);
             BitConverter.GetBytes(lobbyTime.Ticks).CopyTo(data, 0);
             BitConverter.GetBytes(matchTime.Ticks).CopyTo(data, sizeof(long));
 

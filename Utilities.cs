@@ -11,6 +11,42 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Timers;
+using Sandbox.Definitions;
+using Sandbox.Game;
+using Sandbox.ModAPI;
+using Sandbox.ModAPI.Interfaces;
+using VRage.Collections;
+using VRage.Game;
+using VRage.Game.Components;
+using VRage.Game.ModAPI;
+using VRage.ModAPI;
+using VRageMath;
+using System.Threading.Tasks;
+using System.Windows.Controls;
+using NLog;
+using Torch;
+using Torch.API;
+using Torch.API.Plugins;
+using System.Reflection;
+using VRage.Utils;
+using Sandbox.Common.ObjectBuilders;
+using VRage.Game.ObjectBuilders.Definitions;
+using VRage.ObjectBuilders;
+using Sandbox.Game.EntityComponents;
+using System.Text;
+using VRage;
+using Sandbox.Game.Entities;
+using VRage.Game.Entity;
+using Sandbox.Game.Gui;
+using Ingame = Sandbox.ModAPI.Ingame;
+using Sandbox.ModAPI.Interfaces.Terminal;
+using ProtoBuf;
+using SpaceEngineers.Game.ModAPI;
 
 namespace ServerJump
 {
@@ -56,7 +92,7 @@ namespace ServerJump
 
             string obStr = MyAPIGateway.Utilities.SerializeToXML(data);
             string totalStr = DateTime.UtcNow.Ticks + obStr;
-            string evalStr = totalStr + ServerJump.ServerJumpClass.Instance.Settings.Password;
+            string evalStr = totalStr + ServerJump.ServerJumpClass.Instance.Config.Password;
 
             var m = new MD5();
             m.Value = evalStr;
@@ -74,7 +110,7 @@ namespace ServerJump
                 string hash = input.Substring(input.Length - 32);
 
                 var m = new MD5();
-                m.Value = timeAndOb + ServerJump.ServerJumpClass.Instance.Settings.Password;
+                m.Value = timeAndOb + ServerJump.ServerJumpClass.Instance.Config.Password;
                 string sign = m.FingerPrint;
 
                 long ticks = long.Parse(timeAndOb.Substring(0, 18));
@@ -85,7 +121,7 @@ namespace ServerJump
                 var time = new DateTime(ticks);
 
                 if (sign != hash)
-                    return VerifyResult.Ok;
+                    return VerifyResult.ContentModified;
 
                 if (!ignoreTimestamp && DateTime.UtcNow - time > TimeSpan.FromMinutes(10))
                     return VerifyResult.Timeout;
@@ -128,7 +164,7 @@ namespace ServerJump
                 if (!(block as IMyJumpDrive == null) && block.SubtypeName == "HyperDrive") s.CurrentStoredPower = 0;
             }
 
-            Vector3D pos = RandomPositionFromPoint(Vector3D.Zero, Random.NextDouble() * ServerJump.ServerJumpClass.Instance.Settings.SpawnRadius);
+            Vector3D pos = RandomPositionFromPoint(Vector3D.Zero, Random.NextDouble() * ServerJump.ServerJumpClass.Instance.Config.SpawnRadius);
             ent.SetPosition(MyAPIGateway.Entities.FindFreePlace(pos, (float)ent.WorldVolume.Radius) ?? pos);
 
             IMyPlayer player = GetPlayerById(playerId);
@@ -233,15 +269,6 @@ namespace ServerJump
         //        base.Context.Respond(string.Format("Forced replication of {0} entities.", list.Count), "Server", "Blue");
         //    }
         //}
-        public static void ScrubServer()
-        {
-            var players = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(players);
-            foreach (IMyPlayer p in players)
-                Communication.RedirectClient(p.SteamUserId, ServerJump.ServerJumpClass.Instance.Settings.HubIP);
-
-
-        }
 
         public static void RecreateFaction(FactionData data, long requester)
         {

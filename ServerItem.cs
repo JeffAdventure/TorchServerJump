@@ -18,19 +18,8 @@ namespace ServerJump
             IP = ip;
         }
 
-        public bool CanJoin
-        {
-            get { return !MatchRunning && CurrentUsers < ServerJump.ServerJumpClass.Instance.Settings.MaxPlayerCount; }
-        }
 
-        public void Join(ulong steamId)
-        {
-            if (CanJoin)
-                Communication.RedirectClient(steamId, IP);
-            if (CurrentUsers == 0)
-                Start();
-            CurrentUsers++;
-        }
+
 
         public void Reset()
         {

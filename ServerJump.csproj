@@ -210,11 +210,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Commands.cs" />
-    <Compile Include="BlockDegradationControl.xaml.cs">
-      <DependentUpon>BlockDegradationControl.xaml</DependentUpon>
-    </Compile>
     <Compile Include="ClientData.cs" />
     <Compile Include="Communication.cs" />
+    <Compile Include="JumpGateControl.xaml.cs">
+      <DependentUpon>JumpGateControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="LinkModCore.cs" />
     <Compile Include="MD5.cs" />
     <Compile Include="SegmentedReceiver.cs" />
@@ -223,7 +223,7 @@
     <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="BlockDegradationControl.xaml">
+    <Page Include="JumpGateControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

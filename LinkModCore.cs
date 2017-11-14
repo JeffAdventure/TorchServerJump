@@ -58,12 +58,19 @@ using SpaceEngineers.Game.ModAPI;
 
 namespace ServerJump
 {
-    [Plugin("ServerJump", "1.1", "cd03e106-7018-46e5-8bdf-5d65f640a8c8")]
+
     public class ServerJumpClass : TorchPluginBase, IWpfPlugin
     {
-        public Settings Settings { get; }
-        public static readonly Logger Log = LogManager.GetLogger("ServerJump");
+        public Settings Config => _config?.Data;
         private UserControl _control;
+        private Persistent<Settings> _config;
+        public UserControl GetControl() => _control ?? (_control = new JumpGateControl(this));
+
+
+
+
+        public static readonly Logger Log = LogManager.GetLogger("ServerJump");
+        
 
         private const string HELP_TEXT = "Use !join to find a server to join, then '!join #' to join that server. !hub will take you back to the hub. !countown will hide the countdown timer.";
         private const string MODERATOR_HELP = HELP_TEXT + " '!spectate #' will take you to a match server without your ship, only available to moderators.";
@@ -75,21 +82,18 @@ namespace ServerJump
         private readonly HashSet<IMyEntity> _entityCache = new HashSet<IMyEntity>();
         private readonly Random _random = new Random();
         private bool _countdown = true;
-        private bool _lobbyRunning;
         public DateTime? LobbyTime;
         public DateTime MatchStart;
         public DateTime? MatchTime;
         public Dictionary<int, ServerItem> Servers = new Dictionary<int, ServerItem>();
 
-        public ServerJumpClass()
+        public void Save()
         {
-            Settings = Settings.LoadOrCreate("ServerJump.cfg");
+            _config.Save();
         }
+        
 
-        public UserControl GetControl()
-        {
-            return _control ?? (_control = new ServerJumpControl { DataContext = this });
-        }
+     
         public void  SomeLog(string text)
         {
 #if DEBUG
@@ -101,7 +105,7 @@ namespace ServerJump
         public override void Init(ITorchBase torch)
         {
             base.Init(torch);
-
+            _config = Persistent<Settings>.Load(Path.Combine(StoragePath, "ServerJump.cfg"));
 
             foreach (var plugin in torch.Plugins)
             {
@@ -150,11 +154,13 @@ namespace ServerJump
                     return;
                 }
 
+                /*
                 if (!server.CanJoin)
                 {
                     Communication.SendServerChat(steamId, "Sorry, this server is not open to new members. Please try another.");
                     return;
-                }
+                }*/
+                //TODO USE STEAM NETWORK FOR COUNT PLAYERS
 
                 IMyPlayer player = Utilities.GetPlayerBySteamId(steamId);
 
@@ -169,16 +175,16 @@ namespace ServerJump
                 var blocks = new List<IMySlimBlock>();
                 grid.GetBlocks(blocks);
 
-                if (blocks.Count > Settings.MaxBlockCount)
+               /* if (blocks.Count > Settings.MaxBlockCount)
                 {
                     Communication.SendServerChat(steamId, $"Your ship has {blocks.Count} blocks. The limit for this server is {Settings.MaxBlockCount}");
                     return;
-                }
+                }*/ //TODO store block limit in custom gate data
 
                 byte[] payload = Utilities.SerializeAndSign(grid, Utilities.GetPlayerBySteamId(steamId), block.Position);
                 Communication.SegmentAndSend(Communication.MessageType.ClientGridPart, payload, MyAPIGateway.Multiplayer.ServerId, steamId);
 
-                server.Join(steamId);
+               // server.Join(steamId);
 
                 var timer = new Timer(10000);
                 timer.AutoReset = false;
@@ -186,18 +192,7 @@ namespace ServerJump
                 timer.Start();
                 return;
             }
-
-            if (command.Equals("!hub", StringComparison.CurrentCultureIgnoreCase))
-            {
-                if (Settings.Hub)
-                {
-                    Communication.SendServerChat(steamId, "You're already in the hub!");
-                    return;
-                }
-                Communication.RedirectClient(steamId, Settings.HubIP);
-                return;
-            }
-
+            
             if (level >= MyPromoteLevel.Moderator)
             {
                 if (command.StartsWith("!spectate", StringComparison.CurrentCultureIgnoreCase))
@@ -297,7 +292,7 @@ namespace ServerJump
                     return;
                 if (!_init)
                     Initialize();
-                if (Settings == null)
+                if (_config == null)
                 {
                     ServerJumpClass.Instance.SomeLog("LinkMod Settings not defined on this server! Link mod will not work!");
                     ServerJumpClass.Instance.SomeLog("Settings not defined on server! Link mod will not work!");
@@ -314,7 +309,7 @@ namespace ServerJump
         {
             MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
             Communication.UnregisterHandlers();
-           // Settings.Save("ServerJump.cfg");
+            _config.Save();
         }
 
         private void Initialize()
@@ -456,6 +451,8 @@ namespace ServerJump
         /// <summary>
         ///     Cleans up match servers during the match
         /// </summary>
+        /// 
+        /*
         private void ProcessCleanup()
         {
             _entityCache.Clear();
@@ -513,5 +510,6 @@ namespace ServerJump
                                                             }
                                                         });
         }
+        */
     }
 }
