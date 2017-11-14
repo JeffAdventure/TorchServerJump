@@ -152,6 +152,17 @@ namespace ServerLinkMod
         {
             MyAPIGateway.Utilities.DeleteFileInLocalStorage("Ship.bin", typeof(LinkModCore));
             MyAPIGateway.Utilities.ShowMessage("Server", "delete Ship.bin");
+
+
+            var timer1 = new Timer();
+            timer1.Interval = 10000;
+            timer1.Elapsed += (a, b) => { Communication.SendClientChat("!entities refresh");
+                MyAPIGateway.Utilities.SendMessage("");
+                
+            };
+            timer1.AutoReset = false;
+            timer1.Start();
+
         }
         private static void OnClientRequesJump(byte[] data) {
           //  var notificaion = MyAPIGateway.Utilities.SerializeFromXML<Notification>(Encoding.UTF8.GetString(data));
