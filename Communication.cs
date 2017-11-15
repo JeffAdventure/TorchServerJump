@@ -150,6 +150,7 @@ namespace ServerJump
                     SendToClient(MessageType.ResetClient, Encoding.ASCII.GetBytes("pidor"), steamId);
                     //ServerJumpClass.Instance.TryStartLobby();
                     SendMatchTimes(steamId);
+                   // Extensions.Refresh(steamId);
                     break;
                 case Utilities.VerifyResult.Error:
                     MyAPIGateway.Utilities.ShowMessage("Server", "Error loading a grid. Notify an admin!");

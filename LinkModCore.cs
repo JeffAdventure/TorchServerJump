@@ -326,7 +326,7 @@ namespace ServerJump
 
         private void MessageEntered(string messageText, ref bool sendToOthers)
         {
-            if (messageText.Equals("!countdown", StringComparison.CurrentCultureIgnoreCase))
+            if (messageText.Equals("!!countdown", StringComparison.CurrentCultureIgnoreCase))
             {
                 sendToOthers = false;
                 _countdown = !_countdown;
@@ -334,7 +334,7 @@ namespace ServerJump
                 return;
             }
 
-            if (messageText.StartsWith("!"))
+            if (messageText.StartsWith("!!"))
             {
                 sendToOthers = false;
                 Communication.SendClientChat(messageText);

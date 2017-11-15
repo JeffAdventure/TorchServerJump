@@ -30,6 +30,28 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using NLog;
 using Torch;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using Sandbox;
+using Sandbox.Engine.Multiplayer;
+using Sandbox.Game.Entities;
+using Sandbox.Game.World;
+using Sandbox.ModAPI;
+using Torch.Commands;
+using Torch.Commands.Permissions;
+using Torch.Utils;
+using VRage.Collections;
+using VRage.Game.Entity;
+using VRage.Game.ModAPI;
+using VRage.ModAPI;
+using VRage.Network;
+using VRage.Replication;
+using VRageMath;
 using Torch.API;
 using Torch.API.Plugins;
 using System.Reflection;
@@ -168,7 +190,8 @@ namespace ServerJump
             ent.SetPosition(MyAPIGateway.Entities.FindFreePlace(pos, (float)ent.WorldVolume.Radius) ?? pos);
 
             IMyPlayer player = GetPlayerById(playerId);
-            if (fac != null)
+            /*
+             * if (fac != null)
             {
                 var entities = new HashSet<IMyEntity>();
                 MyAPIGateway.Entities.GetEntities(entities);
@@ -190,18 +213,28 @@ namespace ServerJump
                     ent.SetPosition(MyAPIGateway.Entities.FindFreePlace(p, (float)ent.WorldVolume.Radius) ?? p);
 
                     break;
-                }
-            }
+               
+                
+            }*/
+
             MyAPIGateway.Entities.AddEntity(ent);
-            var timer = new Timer(10000);
-            timer.AutoReset = false;
-                timer.Elapsed += (a, b) => MyAPIGateway.Utilities.InvokeOnGameThread(() =>
-                {
-                    IMySlimBlock slim = ((IMyCubeGrid)ent).GetCubeBlock(controlledBlock);
+            player.Character.SetPosition(MyAPIGateway.Entities.FindFreePlace(ent.GetPosition(), (float)ent.WorldVolume.Radius)?? pos );
+            // var timer = new Timer(10000);
+            //timer.AutoReset = false;
+            //   timer.Elapsed += (a, b) => MyAPIGateway.Utilities.InvokeOnGameThread(() =>
+            //timer.Elapsed += (a, b) => TorchBase.Instance.InvokeBlocking(() =>
+
+            //  {
+            IMySlimBlock slim = ((IMyCubeGrid)ent).GetCubeBlock(controlledBlock);
                     if (slim?.FatBlock is IMyCockpit && player?.Character != null)
                     {
+                       
                         var c = (IMyCockpit)slim.FatBlock;
                         player.Character.SetPosition(c.GetPosition());
+                        
+                        Extensions.Refresh(player.SteamUserId);
+                      
+                       
                         c.AttachPilot(player.Character);
                        
                         }
@@ -223,9 +256,9 @@ namespace ServerJump
                         player?.Character?.SetPosition(cPos);
                     }
 
-                }
-                );
-                timer.Start();
+               // }
+                
+               // timer.Start();
         }
 
         /// <summary>
@@ -347,6 +380,52 @@ namespace ServerJump
 
     public static class Extensions
     {
+        [ReflectedGetter(Name = "m_clientStates")]
+        private static Func<MyReplicationServer, IDictionary> _clientStates;
+
+        private const string CLIENT_DATA_TYPE_NAME = "VRage.Network.MyReplicationServer+ClientData, VRage";
+        [ReflectedGetter(TypeName = CLIENT_DATA_TYPE_NAME, Name = "Replicables")]
+        private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
+
+        [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new[] { null, null, CLIENT_DATA_TYPE_NAME, null })]
+        private static Action<MyReplicationServer, IMyReplicable, Endpoint, object, bool> _removeForClient;
+
+        [ReflectedMethod(Name = "ForceReplicable")]
+        private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+
+        public static void Refresh(ulong SteamUserId)
+        {
+            if (SteamUserId == 0)
+                return;
+
+            var playerEndpoint = new Endpoint(SteamUserId, 0);
+            var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
+            var clientDataDict = _clientStates.Invoke(replicationServer);
+            object clientData;
+            try
+            {
+                clientData = clientDataDict[playerEndpoint];
+            }
+            catch
+            {
+                return;
+            }
+
+            var clientReplicables = _replicables.Invoke(clientData);
+
+            var replicableList = new List<IMyReplicable>(clientReplicables.Count);
+            foreach (var pair in clientReplicables)
+                replicableList.Add(pair.Key);
+
+            foreach (var replicable in replicableList)
+            {
+                _removeForClient.Invoke(replicationServer, replicable, playerEndpoint, clientData, true);
+                _forceReplicable.Invoke(replicationServer, replicable, playerEndpoint);
+            }
+
+            ServerJumpClass.Instance.SomeLog($"Forced replication of {replicableList.Count} entities.for SteamUserId: { SteamUserId }");
+        }
+
         public static void AddOrUpdate<T>(this Dictionary<T, int> dic, T key, int value)
         {
             if (dic.ContainsKey(key))
