@@ -107,14 +107,14 @@ namespace ServerJump
             base.Init(torch);
             _config = Persistent<Settings>.Load(Path.Combine(StoragePath, "ServerJump.cfg"));
 
-            foreach (var plugin in torch.Plugins)
+           /* foreach (var plugin in torch.Plugins)
             {
                 if (plugin.Id == Guid.Parse("17f44521-b77a-4e85-810f-ee73311cf75d"))
                 {
                     //   concealment = plugin;
                     // ReflectMethodRevealAll = plugin.GetType().GetMethod("RevealAll", BindingFlags.Public | BindingFlags.Instance);
                 }
-            }
+            }*/
            SomeLog("Init SERVERLINK");
             //_concealedAabbTree = new MyDynamicAABBTreeD(MyConstants.GAME_PRUNING_STRUCTURE_AABB_EXTENSION);
         }
@@ -307,9 +307,8 @@ namespace ServerJump
 
         public override void Dispose()
         {
-            MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
+            if(MyAPIGateway.Utilities != null) MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
             Communication.UnregisterHandlers();
-            _config.Save();
         }
 
         private void Initialize()
@@ -378,7 +377,7 @@ namespace ServerJump
             string IP = "0.0.0.0:27016";
             Communication.SendServerChat(steamId, "CheckBeforeJump start!" + gridpos);
             List<IMyEntity> allentities = new List<IMyEntity>();
-            var tmpsphere = new BoundingSphereD(gridpos, 5100);
+            var tmpsphere = new BoundingSphereD(gridpos, 3100);
             allentities = MyAPIGateway.Entities.GetEntitiesInSphere(ref tmpsphere);
             Communication.SendServerChat(steamId, "GetTopMostEntitiesInSphere :" + allentities.Count);
             List<IMyCubeGrid> allentitieslist = allentities.OfType<IMyCubeGrid>().ToList();
@@ -390,11 +389,11 @@ namespace ServerJump
                     if (grid?.GridSizeEnum == MyCubeSize.Small || grid.Physics == null ||grid.MarkedForClose || grid.Closed )
                         continue;
                     // Logging.Instance.WriteLine($"grid.Name = " + grid.Name);
-                    Communication.SendServerChat(steamId, "before GetBlocks :");
+                    Communication.SendServerChat(steamId, "grid.WorldVolume :" + grid.WorldVolume.Radius);
                     var blocks = new List<IMySlimBlock>();
 
-                    var tmpspher2e = new BoundingSphereD(grid.GetPosition(), 1000);
-                    blocks = grid.GetBlocksInsideSphere(ref tmpspher2e);
+                    var tmpspher2e = new BoundingSphereD(grid.GetPosition(), grid.WorldVolume.Radius * 2 ); 
+                     blocks = grid.GetBlocksInsideSphere(ref tmpspher2e);
 
                     Communication.SendServerChat(steamId, " GetBlocks :" + blocks.Count);
 
@@ -404,7 +403,7 @@ namespace ServerJump
                         {
                         // Communication.SendServerChat(steamId, " block :" + block.GetObjectBuilderCubeBlock().SubtypeName);
                         if (block.FatBlock == null) continue;
-                        if (block?.FatBlock?.BlockDefinition.SubtypeId  == "HyperDrive" &&
+                        if (block.FatBlock.BlockDefinition.SubtypeId  == "HyperDrive" &&
                             ((block.FatBlock.GetObjectBuilderCubeBlock() as MyObjectBuilder_JumpDrive).StoredPower >= (block.FatBlock as MyJumpDrive).BlockDefinition.PowerNeededForJump))
                             {
                                 HyperDrive = true;
@@ -428,7 +427,7 @@ namespace ServerJump
                                 //Communication.SendServerChat(steamId, "redirect to 178.210.32.201:27016!");
                                 Communication.RedirectClient(steamId, IP);//"178.210.32.201:27016"
                                 ServerJumpClass.Instance.SomeLog("[Jump] Client: " + Utilities.GetPlayerBySteamId(steamId).DisplayName + " steamId: " +steamId + " Grid: " + grid.DisplayName + " To: " + IP);
-                                var timer = new Timer(10000);
+                                var timer = new Timer(8000);
                                 timer.AutoReset = false;
                                 timer.Elapsed += (a, b) => MyAPIGateway.Utilities.InvokeOnGameThread(() => gridtotp.Close());
                                 timer.Start();
