@@ -381,12 +381,12 @@ namespace ServerLinkMod
             return block.CubeGrid.GridIntegerToWorld(block.Position);
         }
 
-        public static int GetBaseMass(this IMyCubeGrid Grid)
+        /*public static int GetBaseMass(this IMyCubeGrid Grid)
         {
             int baseMass, totalMass;
             (Grid as MyCubeGrid).GetCurrentMass(out baseMass, out totalMass);
             return baseMass;
-        }
+        }*/
 
         public static int GetTotalMass(this IMyCubeGrid Grid)
         {
